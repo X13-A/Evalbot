@@ -119,7 +119,7 @@ __main
 
 ReadState
 
-		ldr r10,[r8]
+		ldr r10,[r7]
 		CMP r10,#0xC0
 		BNE ReadState
 
