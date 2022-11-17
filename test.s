@@ -31,6 +31,10 @@ GPIO_I_PUR   		EQU 	0x00000510  ; GPIO Pull-Up (p432 datasheet de lm3s9B92.pdf)
 ; Broches select
 BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
 
+BROCHE4 			EQU 	0x10		; led1 sur broche 4
+
+BROCHE5 			EQU 	0x20		; led2 sur broche 5
+
 BROCHE6_7			EQU 	0xC0		; bouton poussoir 1 et 2 sur broche 6 et 7
 
 BROCHE0_1			EQU 	0x03		; bumpers 1 et 2 sur broche 0 et 1
@@ -113,55 +117,45 @@ __main
 		
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Bumper	
 		
+		B CheckBumpers
 		
-		
-
-		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CLIGNOTTEMENT
-		
-		b CheckLeds
-		
-TurnOffLed1
-		str r2, [r6]    						;; Eteint LED car r2 = 0x00
-		b CheckLed2
-		
-TurnOffLed2
-		str r2, [r6]    						;; Eteint LED car r2 = 0x00
-		b CheckLeds
-		
-TurnOffLed1and2
-		str r2, [r6]    						;; Eteint LED car r2 = 0x00
-		b CheckLeds
+TurnOnLeds
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		ldr r3, = BROCHE4_5
+		str r3, [r6]
+		B CheckBumpers
 
 TurnOnLed1
-		str r3, [r6] 							;; Allume LED1&2 portF broche 4&5 : 00110000 (contenu de r3)
-		b CheckLed2
-		
-TurnOnLed2
-		str r3, [r6] 							;; Allume LED1&2 portF broche 4&5 : 00110000 (contenu de r3)
-		b CheckLed1and2
-		
-TurnOnLed1and2
-		str r3, [r6] 							;; Allume LED1&2 portF broche 4&5 : 00110000 (contenu de r3)
-		b CheckLeds
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
+		str r2, [r6] ; Turns off Led 2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
+		ldr r3, = BROCHE4 ; Turns on Led 1
+		str r3, [r6]
+		B CheckBumpers
 
-CheckLeds
-		ldr r10,[r8]
-		CMP r10,#0x01
-		BNE TurnOffLed1
+TurnOnLed2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
+		str r2, [r6] ; Turns off Led 1
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
+		ldr r3, = BROCHE5
+		str r3, [r6]
+		B CheckBumpers
+
+TurnOffLeds
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]
+		B CheckBumpers
 		
-		b TurnOnLed1
+CheckBumpers
+		ldr r10, [r8]
+		CMP r10, #0x00 ; Check if both are pushed
+		BEQ TurnOnLeds
+		CMP r10, #0x02 ; Check if left one is pushed
+		BEQ TurnOnLed1
+		CMP r10, #0x01 ; check if right one is pushed
+		BEQ TurnOnLed2
 		
-CheckLed2	
-		CMP r10,#0x02
-		BNE TurnOffLed2
-		
-		b TurnOnLed2
-		
-		CMP r10,#0x03
-		BNE TurnOffLed1and2
-		
-		b TurnOnLed1and2
-		
+		B TurnOffLeds ; if none, turn off leds
 
 
 		nop		

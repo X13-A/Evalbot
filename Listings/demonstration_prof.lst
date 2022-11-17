@@ -244,7 +244,7 @@ N
   119 00000060         
   120 00000060         ReadState
   121 00000060         
-  122 00000060 F8D8 A000       ldr              r10,[r8]
+  122 00000060 F8D7 A000       ldr              r10,[r7]
   123 00000064 F1BA 0FC0       CMP              r10,#0xC0
   124 00000068 D1FA            BNE              ReadState
   125 0000006A         
@@ -295,11 +295,11 @@ ARM Macro Assembler    Page 5
               002FFFFF 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
 ork --depend=.\objects\demonstration_prof.d -o.\objects\demonstration_prof.o -I
-.\RTE\_Target_1 -I"D:\Program Files\ARM Keil\Packs\ARM\CMSIS\5.5.1\CMSIS\Core\I
-nclude" -I"D:\Program Files\ARM Keil\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM3\In
-clude" --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine=
-"__UVISION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SET
-A 1" --list=.\listings\demonstration_prof.lst Demonstration_prof.s
+.\RTE\_Target_1 -IC:\Users\foulo\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\
+Core\Include -IC:\Users\foulo\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\Device\AR
+M\ARMCM3\Include --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --
+predefine="__UVISION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="
+ARMCM3 SETA 1" --list=.\listings\demonstration_prof.lst Demonstration_prof.s
 
 
 
