@@ -36,10 +36,6 @@ BROCHE4 			EQU 	0x10		; led1 sur broche 4
 BROCHE5 			EQU 	0x20		; led2 sur broche 5
 
 BROCHE6_7			EQU 	0xC0		; bouton poussoir 1 et 2 sur broche 6 et 7
-	
-BROCHE6				EQU 	0x40		; bouton poussoir 1 sur broche 6
-	
-BROCHE7				EQU 	0x80		; bouton poussoir 2 sur broche 7
 
 BROCHE0_1			EQU 	0x03		; bumpers 1 et 2 sur broche 0 et 1
 	
@@ -133,43 +129,6 @@ __main
 		
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Bumper	
 
-
-LOOP
-		ldr r10, [r7]
-		CMP r10, #0x40 ; Check if switch 1 is pushed
-		BEQ Programme1
-		CMP r10, #0x80 ; Check if switch 2 is pushed
-		BEQ Programme2
-		B LOOP
-
-
-
-Programme2
-
-Init
-		ldr r4, =0x0
-		ldr r5, =0x0
-		B Main
-		
-Main
-		CMP r10, #0x40 ; Check if switch 1 is pushed
-		BEQ gPlus1
-		CMP r10, #0x80 ; Check if switch 2 is pushed
-		BEQ dPlus1
-		B Main
-		
-gPlus1
-		ADD r4, #1
-		B Main
-		
-dPlus1
-		ADD r5, #1
-		B Main
-
-
-
-
-Programme1
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		
@@ -181,34 +140,25 @@ Programme1
 		BL	MOTEUR_DROIT_AVANT	   
 		BL	MOTEUR_GAUCHE_AVANT
 		
-CheckBumpers
-		ldr r10, [r8]
-		CMP r10, #0x02 ; Check if left one is pushed
-		BEQ TurnOnLed1
-		CMP r10, #0x01 ; check if right one is pushed
-		BEQ TurnOnLed2
-		
-		B TurnOffLeds ; if none, turn off leds
+		B CheckBumpers
 		
 TurnOnLeds
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		ldr r3, = BROCHE4_5
 		str r3, [r6]
-		B CheckBumpers
+		B HalfTurn
 
 TurnOnLed1
-		;ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
-		;str r2, [r6] ; Turns off Led 2
-		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
+		str r2, [r6] ; Turns off Led 2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r3, = BROCHE4 ; Turns on Led 1
 		str r3, [r6]
 		B LeftDirection
 
 TurnOnLed2
-		;ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
-		;str r2, [r6] ; Turns off Led 1
-		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
+		str r2, [r6] ; Turns off Led 1
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
 		str r3, [r6]
@@ -218,6 +168,49 @@ TurnOffLeds
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]
 		B CheckBumpers
+		
+CheckRightBumper
+		B SHORTWAIT
+		CMP r10, #0x01 ; check if bumper right is pushed
+		BEQ TurnOnLeds
+		B TurnOnLed1
+		
+CheckLeftBumper
+		B SHORTWAIT
+		CMP r10, #0x02 ; check if bumper left is pushed
+		BEQ TurnOnLeds
+		B TurnOnLed2
+
+Ajoute1
+		ADD r4, #1
+		B CheckBumperRight
+		
+Ajoute2
+		ADD r4, #2
+		B CompareResult
+
+CheckBumpers
+		ldr r10, [r8]
+		ldr r4, =0x0
+		CMP r10, #0x02 ; Check if bumper left is pushed
+		BEQ Ajoute1
+		;BEQ CheckRightBumper
+		;BEQ TurnOnLed1
+		
+CheckBumperRight
+		CMP r10, #0x01 ; check if bumper right is pushed
+		BEQ Ajoute2
+		;BEQ CheckLeftBumper
+		;BEQ TurnOnLed2
+CompareResult
+		CMP r4, #3
+		BEQ TurnOnLeds
+		CMP r4, #1
+		BEQ TurnOnLed1
+		CMP r4, #2
+		BEQ TurnOnLed2
+		
+		B TurnOffLeds ; if none, turn off leds
 
 RightDirection
 		BL	MOTEUR_DROIT_ARRIERE
@@ -246,7 +239,6 @@ HalfTurn
 		BL WAIT
 		BL	MOTEUR_GAUCHE_ARRIERE   ; MOTEUR_GAUCHE_INVERSE
 		BL	WAIT
-		BL	MOTEUR_GAUCHE_ARRIERE   ; MOTEUR_GAUCHE_INVERSE
 		BL	WAIT   
 		BL	MOTEUR_GAUCHE_AVANT
 		B CheckBumpers
@@ -256,7 +248,11 @@ HalfTurn
 WAIT	ldr r1, =0x2BFFFF
 wait1	subs r1, #1
         bne wait1
-	
+		
+SHORTWAIT	ldr r1, =0xEAAAA  ;; = WAIT / 3
+wait2	subs r1, #1
+        bne wait2
+		
 		;; retour à la suite du lien de branchement
 		BX	LR
 		
