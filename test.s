@@ -142,29 +142,36 @@ ChooseProgram
 
 
 Program2
+		B Init
+		
+AddLeft
+		ADD r5, #1
+		LSL r4, r4, #1
+		ADD r4, #1
+		BL WAIT
+		B Input
+
+AddRight
+		ADD r5, #1
+		LSL r4, r4, #1
+		BL WAIT
+		B Input
+		
+Input ; Enregistrement des directions lues par les bumpers
+		ldr r10, [r8]
+		CMP r10, #0x02 ; Check if right one is pushed
+		BEQ AddRight 
+		CMP r10, #0x01 ; check if left one is pushed
+		BEQ AddLeft
+		
+		B Input
 
 Init
-		ldr r4, =0x0
-		ldr r5, =0x0
-		B Main
+		ldr r4, =0x0 ; Directions
+		ldr r5, =0x0 ; Compteur
 		
 Main
-		CMP r10, #0x40 ; Check if switch 1 is pushed
-		BEQ gPlus1
-		CMP r10, #0x80 ; Check if switch 2 is pushed
-		BEQ dPlus1
-		B Main
-		
-gPlus1
-		ADD r4, #1
-		B Main
-		
-dPlus1
-		ADD r5, #1
-		B Main
-
-
-
+		B Input
 
 Program1
 		; Configure les PWM + GPIO
@@ -182,9 +189,9 @@ Program1
 		
 CheckBumpers
 		ldr r10, [r8]
-		CMP r10, #0x02 ; Check if left one is pushed
+		CMP r10, #0x02 ; Check if right one is pushed
 		BEQ waitBumperRight
-		CMP r10, #0x01 ; check if right one is pushed
+		CMP r10, #0x01 ; check if left one is pushed
 		BEQ waitBumperleft
 		
 		B TurnOffLeds ; if none, turn off leds
