@@ -42,9 +42,6 @@ BROCHE6				EQU 	0x40		; bouton poussoir 1 sur broche 6
 BROCHE7				EQU 	0x80		; bouton poussoir 2 sur broche 7
 
 BROCHE0_1			EQU 	0x03		; bumpers 1 et 2 sur broche 0 et 1
-	
-; blinking frequency
-DUREE   			EQU     0x002FFFFF
 
 
 	  	ENTRY
@@ -80,7 +77,7 @@ __main
 		nop	   									;; pas necessaire en simu ou en debbug step by step...
 	
 
-;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION 2 LEDs
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION 2 LEDs
 
         ldr r6, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
         ldr r0, = BROCHE4_5 	
@@ -134,17 +131,17 @@ __main
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Bumper	
 
 
-LOOP
+ChooseProgram
 		ldr r10, [r7]
 		CMP r10, #0x40 ; Check if switch 1 is pushed
-		BEQ Programme1
+		BEQ Program1
 		CMP r10, #0x80 ; Check if switch 2 is pushed
-		BEQ Programme2
-		B LOOP
+		BEQ Program2
+		B ChooseProgram
 
 
 
-Programme2
+Program2
 
 Init
 		ldr r4, =0x0
@@ -169,7 +166,7 @@ dPlus1
 
 
 
-Programme1
+Program1
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		
@@ -180,13 +177,15 @@ Programme1
 		; Evalbot avance droit devant
 		BL	MOTEUR_DROIT_AVANT	   
 		BL	MOTEUR_GAUCHE_AVANT
+
+		B MainProgram1
 		
 CheckBumpers
 		ldr r10, [r8]
 		CMP r10, #0x02 ; Check if left one is pushed
-		BEQ TurnOnLed1
+		BEQ waitBumperRight
 		CMP r10, #0x01 ; check if right one is pushed
-		BEQ TurnOnLed2
+		BEQ waitBumperleft
 		
 		B TurnOffLeds ; if none, turn off leds
 		
@@ -194,23 +193,23 @@ TurnOnLeds
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		ldr r3, = BROCHE4_5
 		str r3, [r6]
-		B CheckBumpers
+		B HalfTurn
 
 TurnOnLed1
-		;ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
-		;str r2, [r6] ; Turns off Led 2
-		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
-		ldr r3, = BROCHE4 ; Turns on Led 1
-		str r3, [r6]
-		B LeftDirection
-
-TurnOnLed2
-		;ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		;str r2, [r6] ; Turns off Led 1
 		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
+		str r3, [r6]
+		B LeftDirection
+
+TurnOnLed2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
+		;str r2, [r6] ; Turns off Led 2
+		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
+		ldr r3, = BROCHE4 ; Turns on Led 1
 		str r3, [r6]
 		B RightDirection
 
@@ -240,26 +239,59 @@ LeftDirection
 		BL	MOTEUR_GAUCHE_AVANT
 		B CheckBumpers
 
+
 HalfTurn
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
 		BL	MOTEUR_GAUCHE_ARRIERE   ; MOTEUR_GAUCHE_INVERSE
-		BL	WAIT
-		BL	MOTEUR_GAUCHE_ARRIERE   ; MOTEUR_GAUCHE_INVERSE
-		BL	WAIT   
+		BL	MOTEUR_DROIT_AVANT
+		BL WAIT
+		BL WAIT
 		BL	MOTEUR_GAUCHE_AVANT
+
 		B CheckBumpers
 
 
-		;; Boucle d'attante
-WAIT	ldr r1, =0x2BFFFF
-wait1	subs r1, #1
+		;; Boucle d'attente
+WAIT	
+		ldr r1, =0x2BFFFF
+wait1	
+		subs r1, #1
         bne wait1
-	
+		
 		;; retour à la suite du lien de branchement
 		BX	LR
+
+
+		;; Boucle d'attente pour bumper droit
+waitBumperRight	
+		ldr r1, =0xAFFFF
+wait2
+		ldr r10, [r8]
+		CMP r10, #0x0 ; Check if left and right are pushed
+		BEQ TurnOnLeds
+		subs r1, #1
+        bne wait2
 		
+		B TurnOnLed1
+	
+	
+		;; Boucle d'attente pour bumper gauche
+waitBumperleft
+		ldr r1, =0xAFFFF
+wait3
+		ldr r10, [r8]
+		CMP r10, #0x0 ; Check if left and right are pushed
+		BEQ TurnOnLeds
+		subs r1, #1
+        bne wait3
+		
+		B TurnOnLed2
+	
+		
+MainProgram1
+		B CheckBumpers
 		
 		nop		
 		END 
