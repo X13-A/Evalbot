@@ -1,8 +1,3 @@
-	;; RK - Evalbot (Cortex M3 de Texas Instrument)
-	;; Les deux LEDs sont initialement allumées
-	;; Ce programme lis l'état du bouton poussoir 1 connectée au port GPIOD broche 6
-	;; Si bouton poussoir fermé ==> fait clignoter les deux LED1&2 connectée au port GPIOF broches 4&5.
-   	
 		AREA    |.text|, CODE, READONLY
  
 ; This register controls the clock gating logic in normal Run mode
@@ -76,7 +71,6 @@ __main
 		nop	   
 		nop	   									;; pas necessaire en simu ou en debbug step by step...
 	
-
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION 2 LEDs
 
         ldr r6, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
@@ -100,7 +94,6 @@ __main
 		
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED 
 		
-			
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Switcher 
 
 		ldr r7, = GPIO_PORTD_BASE+GPIO_I_PUR	;; Pul_up 
@@ -114,8 +107,7 @@ __main
 		ldr r7, = GPIO_PORTD_BASE + (BROCHE6_7<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
 		
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
-		
-				
+			
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper 
 
 		ldr r8, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
@@ -130,50 +122,21 @@ __main
 		
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Bumper	
 
-
+		;Boucle permettant de choisir le programme 1 ou 2 en pressant le bouton associé
 ChooseProgram
 		ldr r10, [r7]
-		CMP r10, #0x40 ; Check if switch 1 is pushed
+		CMP r10, #0x80 ; Check if switch 1 is pushed
 		BEQ Program1
-		CMP r10, #0x80 ; Check if switch 2 is pushed
+		CMP r10, #0x40 ; Check if switch 2 is pushed
 		BEQ Program2
 		B ChooseProgram
 
 
-
-Program2
-		B Init
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Début programme 1;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		
-AddLeft
-		ADD r5, #1
-		LSL r4, r4, #1
-		ADD r4, #1
-		BL WAIT
-		B Input
-
-AddRight
-		ADD r5, #1
-		LSL r4, r4, #1
-		BL WAIT
-		B Input
-		
-Input ; Enregistrement des directions lues par les bumpers
-		ldr r10, [r8]
-		CMP r10, #0x02 ; Check if right one is pushed
-		BEQ AddRight 
-		CMP r10, #0x01 ; check if left one is pushed
-		BEQ AddLeft
-		
-		B Input
-
-Init
-		ldr r4, =0x0 ; Directions
-		ldr r5, =0x0 ; Compteur
-		
-Main
-		B Input
-
 Program1
+		BL WAIT
+		BL WAIT
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		
@@ -185,7 +148,7 @@ Program1
 		BL	MOTEUR_DROIT_AVANT	   
 		BL	MOTEUR_GAUCHE_AVANT
 
-		B MainProgram1
+		B CheckBumpers
 		
 CheckBumpers
 		ldr r10, [r8]
@@ -234,7 +197,6 @@ RightDirection
 		BL	WAIT
 		BL	MOTEUR_DROIT_AVANT
 		B CheckBumpers
-
 		
 LeftDirection
 		BL	MOTEUR_DROIT_ARRIERE
@@ -245,8 +207,7 @@ LeftDirection
 		BL	WAIT	   
 		BL	MOTEUR_GAUCHE_AVANT
 		B CheckBumpers
-
-
+		
 HalfTurn
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
@@ -259,21 +220,9 @@ HalfTurn
 
 		B CheckBumpers
 
-
-		;; Boucle d'attente
-WAIT	
-		ldr r1, =0x2BFFFF
-wait1	
-		subs r1, #1
-        bne wait1
-		
-		;; retour à la suite du lien de branchement
-		BX	LR
-
-
 		;; Boucle d'attente pour bumper droit
 waitBumperRight	
-		ldr r1, =0xAFFFF
+		ldr r1, =0x2BFFF
 wait2
 		ldr r10, [r8]
 		CMP r10, #0x0 ; Check if left and right are pushed
@@ -286,7 +235,7 @@ wait2
 	
 		;; Boucle d'attente pour bumper gauche
 waitBumperleft
-		ldr r1, =0xAFFFF
+		ldr r1, =0x2BFFF
 wait3
 		ldr r10, [r8]
 		CMP r10, #0x0 ; Check if left and right are pushed
@@ -295,10 +244,156 @@ wait3
         bne wait3
 		
 		B TurnOnLed2
-	
 		
-MainProgram1
-		B CheckBumpers
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Fin programme 1;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Début programme 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+Program2
+		B Init
+
+StartCycle
+		BL WAIT
+		
+		; Activer les deux moteurs droit et gauche
+		BL	MOTEUR_DROIT_ON
+		BL	MOTEUR_GAUCHE_ON
+		
+		AND r9, r4, #0x1
+		CMP r5, #0x0
+		BEQ.W EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x2
+		CMP r5, #0x0
+		BEQ.W EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x4
+		CMP r5, #0x0
+		BEQ.W EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x8
+		CMP r5, #0x0
+		BEQ EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x10
+		CMP r5, #0x0
+		BEQ EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x20
+		CMP r5, #0x0
+		BEQ EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x40
+		CMP r5, #0x0
+		BEQ EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		AND r9, r4, #0x80
+		CMP r5, #0x0
+		BEQ EndProgram
+		SUB r5, #1
+		BL Motors
+		
+		B EndProgram
+
+AddLeft
+		ADD r5, #1
+		LSL r4, r4, #1
+		ADD r4, #1
+		BL WAIT
+		B Input
+
+AddRight
+		ADD r5, #1
+		LSL r4, r4, #1
+		BL WAIT
+		B Input
+		
+Input ; Enregistrement des directions lues par les bumpers
+		ldr r10, [r8]
+		ldr r11, [r7]
+		CMP r10, #0x02 ; Check if right one is pushed
+		BEQ AddRight 
+		CMP r10, #0x01 ; check if left one is pushed
+		BEQ AddLeft
+		CMP r11, #0xC0 ; Check if switch 1 is pushed
+		BNE StartCycle
+		
+		B Input
+
+Init
+		ldr r4, =0x0 ; Directions
+		ldr r5, =0x0 ; Compteur
+		ldr r9, =0x0 ; Pour copier R4 dans R9
+	
+		; Configure les PWM + GPIO
+		BL	MOTEUR_INIT
+		BL WAIT
+
+		B Input
+	
+Motors
+		; Evalbot avance droit devant
+		BL	MOTEUR_DROIT_AVANT	   
+		BL	MOTEUR_GAUCHE_AVANT
+		BL WAIT
+		BL WAIT
+		
+		CMP r9, #0x0
+		BNE TurnLeft
+		
+TurnRight
+		;ADD r2, #1
+		
+		BL	MOTEUR_DROIT_ARRIERE   
+		BL WAIT
+		BL	MOTEUR_DROIT_AVANT
+		BL WAIT
+		
+		ldr r9, =0x0
+		
+		BX	LR
+			
+TurnLeft
+		;ADD r2, #2
+		
+		BL	MOTEUR_GAUCHE_ARRIERE
+		BL WAIT
+		BL	MOTEUR_GAUCHE_AVANT
+		BL WAIT
+		
+		ldr r9, =0x0
+		
+		BX	LR
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Fin programme 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+		;; Boucle d'attente
+WAIT	
+		ldr r1, =0x2BFFFF
+wait1	
+		subs r1, #1
+        bne wait1
+		
+		;; retour à la suite du lien de branchement
+		BX	LR
+
+EndProgram
+		BL	MOTEUR_DROIT_OFF
+		BL	MOTEUR_GAUCHE_OFF
 		
 		nop		
 		END 
