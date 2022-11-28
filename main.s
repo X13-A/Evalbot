@@ -263,41 +263,17 @@ StartCycle
 		BL	MOTEUR_DROIT_AVANT	   
 		BL	MOTEUR_GAUCHE_AVANT
 		BL WAIT
-		BL WAIT
+		BL WAIT  
 		
-		AND r9, r4, #0x1
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x2
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x4
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x8
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x10
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x20
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x40
-		BL Algorithm
-		BL Motors
-		
-		AND r9, r4, #0x80
-		BL Algorithm
-		BL Motors
-		
-		B EndProgram
+ExecuteDirections		
+		AND r9, r4, r2
+		CMP r5, #0x0
+		BEQ.W EndProgram
+		SUB r5, #1
+
+		BL Motors		
+		LSL r2, r2, #0x1
+		B ExecuteDirections
 
 AddLeft
 		ADD r5, #1
@@ -355,19 +331,12 @@ Init
 		ldr r4, =0x0 ; Directions
 		ldr r5, =0x0 ; Compteur
 		ldr r9, =0x0 ; Pour copier R4 dans R9
-	
+		ldr r2, =0x1 ; Pour le décalage à gauche et le calcul and
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		BL WAIT
 
 		B Input
-
-Algorithm
-		CMP r5, #0x0
-		BEQ.W EndProgram
-		SUB r5, #1
-		
-		BX LR
 		
 Motors
 		PUSH {LR}
@@ -376,7 +345,7 @@ Motors
 		B TurnRight
 		
 TurnRight
-		ADD r2, #1
+		;ADD r2, #1
 		
 		BL	MOTEUR_DROIT_ARRIERE   
 		BL WAIT
@@ -389,7 +358,7 @@ TurnRight
 		BX	LR
 			
 TurnLeft
-		ADD r2, #2
+		;ADD r2, #2
 		
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
