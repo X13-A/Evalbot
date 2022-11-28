@@ -46,15 +46,15 @@ BROCHE0_1			EQU 	0x03		; bumpers 1 et 2 sur broche 0 et 1
 		IMPORT	MOTEUR_INIT					; initialise les moteurs (configure les pwms + GPIO)
 		
 		IMPORT	MOTEUR_DROIT_ON				; activer le moteur droit
-		IMPORT  MOTEUR_DROIT_OFF			; déactiver le moteur droit
+		IMPORT  MOTEUR_DROIT_OFF			; d?activer le moteur droit
 		IMPORT  MOTEUR_DROIT_AVANT			; moteur droit tourne vers l'avant
-		IMPORT  MOTEUR_DROIT_ARRIERE		; moteur droit tourne vers l'arrière
+		IMPORT  MOTEUR_DROIT_ARRIERE		; moteur droit tourne vers l'arri?re
 		IMPORT  MOTEUR_DROIT_INVERSE		; inverse le sens de rotation du moteur droit
 		
 		IMPORT	MOTEUR_GAUCHE_ON			; activer le moteur gauche
-		IMPORT  MOTEUR_GAUCHE_OFF			; déactiver le moteur gauche
+		IMPORT  MOTEUR_GAUCHE_OFF			; d?activer le moteur gauche
 		IMPORT  MOTEUR_GAUCHE_AVANT			; moteur gauche tourne vers l'avant
-		IMPORT  MOTEUR_GAUCHE_ARRIERE		; moteur gauche tourne vers l'arrière
+		IMPORT  MOTEUR_GAUCHE_ARRIERE		; moteur gauche tourne vers l'arri?re
 		IMPORT  MOTEUR_GAUCHE_INVERSE		; inverse le sens de rotation du moteur gauche
 
 __main	
@@ -62,7 +62,7 @@ __main
 		; ;; Enable the Port F & D peripheral clock 		(p291 datasheet de lm3s9B96.pdf)
 		; ;;									
 		ldr r6, = SYSCTL_PERIPH_GPIO  			;; RCGC2
-        mov r0, #0x00000038  					;; Enable clock sur GPIO D et F où sont branchés les leds (0x28 == 0b111000)
+        mov r0, #0x00000038  					;; Enable clock sur GPIO D et F o? sont branch?s les leds (0x28 == 0b111000)
 		; ;;														 									      (GPIO::FEDCBA)
         str r0, [r6]
 		
@@ -81,7 +81,7 @@ __main
         ldr r0, = BROCHE4_5		
         str r0, [r6]
 		
-		ldr r6, = GPIO_PORTF_BASE+GPIO_O_DR2R	;; Choix de l'intensité de sortie (2mA)
+		ldr r6, = GPIO_PORTF_BASE+GPIO_O_DR2R	;; Choix de l'intensit? de sortie (2mA)
         ldr r0, = BROCHE4_5			
         str r0, [r6]
 		
@@ -259,52 +259,42 @@ StartCycle
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
 		
+		; Evalbot avance droit devant
+		BL	MOTEUR_DROIT_AVANT	   
+		BL	MOTEUR_GAUCHE_AVANT
+		BL WAIT
+		BL WAIT
+		
 		AND r9, r4, #0x1
-		CMP r5, #0x0
-		BEQ.W EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x2
-		CMP r5, #0x0
-		BEQ.W EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x4
-		CMP r5, #0x0
-		BEQ.W EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x8
-		CMP r5, #0x0
-		BEQ EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x10
-		CMP r5, #0x0
-		BEQ EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x20
-		CMP r5, #0x0
-		BEQ EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x40
-		CMP r5, #0x0
-		BEQ EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		AND r9, r4, #0x80
-		CMP r5, #0x0
-		BEQ EndProgram
-		SUB r5, #1
+		BL Algorithm
 		BL Motors
 		
 		B EndProgram
@@ -313,14 +303,41 @@ AddLeft
 		ADD r5, #1
 		LSL r4, r4, #1
 		ADD r4, #1
+		BL TurnOnLed1P2
 		BL WAIT
+		BL TurnOffLedsP2
 		B Input
 
 AddRight
 		ADD r5, #1
 		LSL r4, r4, #1
+		BL TurnOnLed2P2
 		BL WAIT
+		BL TurnOffLedsP2
 		B Input
+		
+TurnOnLed1P2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
+		;str r2, [r6] ; Turns off Led 1
+		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
+		ldr r3, = BROCHE5
+		str r3, [r6]
+		BX LR
+		
+TurnOnLed2P2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
+		;str r2, [r6] ; Turns off Led 2
+		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
+		ldr r3, = BROCHE4 ; Turns on Led 1
+		str r3, [r6]
+		BX LR
+
+TurnOffLedsP2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]
+		BX LR
 		
 Input ; Enregistrement des directions lues par les bumpers
 		ldr r10, [r8]
@@ -344,19 +361,22 @@ Init
 		BL WAIT
 
 		B Input
-	
-Motors
-		; Evalbot avance droit devant
-		BL	MOTEUR_DROIT_AVANT	   
-		BL	MOTEUR_GAUCHE_AVANT
-		BL WAIT
-		BL WAIT
+
+Algorithm
+		CMP r5, #0x0
+		BEQ.W EndProgram
+		SUB r5, #1
 		
+		BX LR
+		
+Motors
+		PUSH {LR}
 		CMP r9, #0x0
 		BNE TurnLeft
+		B TurnRight
 		
 TurnRight
-		;ADD r2, #1
+		ADD r2, #1
 		
 		BL	MOTEUR_DROIT_ARRIERE   
 		BL WAIT
@@ -364,11 +384,12 @@ TurnRight
 		BL WAIT
 		
 		ldr r9, =0x0
+		POP {LR}
 		
 		BX	LR
 			
 TurnLeft
-		;ADD r2, #2
+		ADD r2, #2
 		
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
@@ -376,6 +397,7 @@ TurnLeft
 		BL WAIT
 		
 		ldr r9, =0x0
+		POP {LR}
 		
 		BX	LR
 		
@@ -388,7 +410,7 @@ wait1
 		subs r1, #1
         bne wait1
 		
-		;; retour à la suite du lien de branchement
+		;; retour ? la suite du lien de branchement
 		BX	LR
 
 EndProgram

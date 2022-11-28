@@ -41,7 +41,7 @@ GPIOAFSEL_H		EQU		PORTH_BASE+0x00000420 ; GPIO Alternate Function Select (GPIOAF
 ;; Pulse Width Modulator (PWM) configuration
 PWM_BASE		EQU		0x040028000 	   ;BASE des Block PWM p.1138
 PWMENABLE		EQU		PWM_BASE+0x008	   ; p1145
-
+	
 ;Block PWM0 pour sorties PWM0 et PWM1 (moteur 1)
 PWM0CTL			EQU		PWM_BASE+0x040 ;p1167
 PWM0LOAD		EQU		PWM_BASE+0x050
