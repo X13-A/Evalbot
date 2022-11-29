@@ -38,7 +38,6 @@ BROCHE7				EQU 	0x80		; bouton poussoir 2 sur broche 7
 
 BROCHE0_1			EQU 	0x03		; bumpers 1 et 2 sur broche 0 et 1
 
-
 	  	ENTRY
 		EXPORT	__main
 		
@@ -165,7 +164,7 @@ TurnOnLeds
 		str r3, [r6]
 		B HalfTurn
 
-TurnOnLed1
+TurnOnLed1Program1
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		;str r2, [r6] ; Turns off Led 1
 		
@@ -174,7 +173,7 @@ TurnOnLed1
 		str r3, [r6]
 		B LeftDirection
 
-TurnOnLed2
+TurnOnLed2Program1
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		;str r2, [r6] ; Turns off Led 2
 		
@@ -192,7 +191,7 @@ RightDirection
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
-		BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
+		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_AVANT
 		BL	WAIT
 		BL	MOTEUR_DROIT_AVANT
@@ -202,7 +201,7 @@ LeftDirection
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
-		BL	MOTEUR_GAUCHE_ARRIERE   ; MOTEUR_GAUCHE_INVERSE
+		BL	MOTEUR_GAUCHE_ARRIERE
 		BL	MOTEUR_DROIT_AVANT
 		BL	WAIT	   
 		BL	MOTEUR_GAUCHE_AVANT
@@ -212,7 +211,7 @@ HalfTurn
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
-		BL	MOTEUR_GAUCHE_ARRIERE   ; MOTEUR_GAUCHE_INVERSE
+		BL	MOTEUR_GAUCHE_ARRIERE
 		BL	MOTEUR_DROIT_AVANT
 		BL WAIT
 		BL WAIT
@@ -230,8 +229,7 @@ wait2
 		subs r1, #1
         bne wait2
 		
-		B TurnOnLed1
-	
+		B TurnOnLed1Program1
 	
 		;; Boucle d'attente pour bumper gauche
 waitBumperleft
@@ -243,14 +241,34 @@ wait3
 		subs r1, #1
         bne wait3
 		
-		B TurnOnLed2
+		B TurnOnLed2Program1
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Fin programme 1;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Début programme 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		
 Program2
-		B Init
+		ldr r4, =0x0 ; Directions
+		ldr r5, =0x0 ; Compteur
+		ldr r9, =0x0 ; Pour copier R4 dans R9
+		ldr r2, =0x1 ; Pour le décalage à gauche et le calcul and
+		ldr r0, =0x2 ; Pour la constante de 2^n
+		; Configure les PWM + GPIO
+		BL	MOTEUR_INIT
+		BL WAIT
+
+Input ; Enregistrement des directions lues par les bumpers
+		ldr r10, [r8]
+		ldr r11, [r7]
+		CMP r10, #0x02 ; Check if right one is pushed
+		BEQ AddRight 
+		CMP r10, #0x01 ; check if left one is pushed
+		BEQ AddLeft
+		CMP r11, #0xC0 ; Check if switch 1 is pushed
+		BNE StartCycle
+		
+		B Input
 
 StartCycle
 		BL WAIT
@@ -275,69 +293,59 @@ ExecuteDirections
 		LSL r2, r2, #0x1
 		B ExecuteDirections
 
+PowerLoop
+		MUL r1, r1, r0
+		SUB r12, #1
+		CMP r12, #0
+		BEQ SequenceAddLeft
+		B PowerLoop
+		
 AddLeft
-		ADD r5, #1
-		LSL r4, r4, #1
-		ADD r4, #1
-		BL TurnOnLed1P2
+		LDR r1, =0x1 ; Pour la puissance à 0 qui vaut 1 par convention
+		CMP r5, #0
+		BEQ SequenceAddLeft
+		MOV r12, r5
+		
+		B PowerLoop
+		
+SequenceAddLeft
+		ADD r5, #1	
+		;LSL r4, r4, #1
+		ADD r4, r4, r1
+		BL TurnOnLed1Program2
 		BL WAIT
-		BL TurnOffLedsP2
+		LDR r12, =0x0
+		BL TurnOffLedsProgram2
+		
 		B Input
 
 AddRight
 		ADD r5, #1
-		LSL r4, r4, #1
-		BL TurnOnLed2P2
+		BL TurnOnLed2Program2
 		BL WAIT
-		BL TurnOffLedsP2
+		BL TurnOffLedsProgram2
+		
 		B Input
 		
-TurnOnLed1P2
+TurnOnLed1Program2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
-		;str r2, [r6] ; Turns off Led 1
-		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
 		str r3, [r6]
 		BX LR
 		
-TurnOnLed2P2
+TurnOnLed2Program2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
-		;str r2, [r6] ; Turns off Led 2
-		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r3, = BROCHE4 ; Turns on Led 1
 		str r3, [r6]
 		BX LR
 
-TurnOffLedsP2
+TurnOffLedsProgram2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]
 		BX LR
-		
-Input ; Enregistrement des directions lues par les bumpers
-		ldr r10, [r8]
-		ldr r11, [r7]
-		CMP r10, #0x02 ; Check if right one is pushed
-		BEQ AddRight 
-		CMP r10, #0x01 ; check if left one is pushed
-		BEQ AddLeft
-		CMP r11, #0xC0 ; Check if switch 1 is pushed
-		BNE StartCycle
-		
-		B Input
-
-Init
-		ldr r4, =0x0 ; Directions
-		ldr r5, =0x0 ; Compteur
-		ldr r9, =0x0 ; Pour copier R4 dans R9
-		ldr r2, =0x1 ; Pour le décalage à gauche et le calcul and
-		; Configure les PWM + GPIO
-		BL	MOTEUR_INIT
-		BL WAIT
-
-		B Input
-		
+				
 Motors
 		PUSH {LR}
 		CMP r9, #0x0
@@ -372,6 +380,7 @@ TurnLeft
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Fin programme 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 		;; Boucle d'attente
 WAIT	
 		ldr r1, =0x2BFFFF
@@ -379,7 +388,7 @@ wait1
 		subs r1, #1
         bne wait1
 		
-		;; retour ? la suite du lien de branchement
+		;; retour à la suite du lien de branchement
 		BX	LR
 
 EndProgram

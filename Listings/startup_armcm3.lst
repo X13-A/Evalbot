@@ -702,11 +702,11 @@ ARM Macro Assembler    Page 11
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
 ork --depend=.\objects\startup_armcm3.d -o.\objects\startup_armcm3.o -I.\RTE\_T
-arget_1 -IC:\Users\foulo\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Inc
-lude -IC:\Users\foulo\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\Device\ARM\ARMCM3
-\Include --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefin
-e="__UVISION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 S
-ETA 1" --list=.\listings\startup_armcm3.lst RTE\Device\ARMCM3\startup_ARMCM3.s
+arget_1 -I"D:\Program Files\ARM Keil\Packs\ARM\CMSIS\5.5.1\CMSIS\Core\Include" 
+-I"D:\Program Files\ARM Keil\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM3\Include" -
+-predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__UVISI
+ON_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1" --l
+ist=.\listings\startup_armcm3.lst RTE\Device\ARMCM3\startup_ARMCM3.s
 
 
 
