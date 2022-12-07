@@ -138,15 +138,12 @@ Program1
 		BL WAIT
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
-		
 		; Activer les deux moteurs droit et gauche
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
-		
 		; Evalbot avance droit devant
 		BL	MOTEUR_DROIT_AVANT	   
 		BL	MOTEUR_GAUCHE_AVANT
-
 		B CheckBumpers
 		
 CheckBumpers
@@ -155,24 +152,24 @@ CheckBumpers
 		BEQ waitBumperRight
 		CMP r10, #0x01 ; check if left one is pushed
 		BEQ waitBumperleft
-		
 		B TurnOffLeds ; if none, turn off leds
-		
+
+; Allume les LEDs
 TurnOnLeds
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		ldr r3, = BROCHE4_5
 		str r3, [r6]
 		B HalfTurn
 
+;Allume la LED 1
 TurnOnLed1Program1
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
-		;str r2, [r6] ; Turns off Led 1
-		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
 		str r3, [r6]
 		B LeftDirection
 
+;Allume la LED 2
 TurnOnLed2Program1
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		;str r2, [r6] ; Turns off Led 2
@@ -182,11 +179,13 @@ TurnOnLed2Program1
 		str r3, [r6]
 		B RightDirection
 
+;Eteind les deux LEDs
 TurnOffLeds
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]
 		B CheckBumpers
 
+;Tourne à droite et avance
 RightDirection
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
@@ -196,7 +195,8 @@ RightDirection
 		BL	WAIT
 		BL	MOTEUR_DROIT_AVANT
 		B CheckBumpers
-		
+
+;Tourne à gauche et avance
 LeftDirection
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
@@ -206,7 +206,8 @@ LeftDirection
 		BL	WAIT	   
 		BL	MOTEUR_GAUCHE_AVANT
 		B CheckBumpers
-		
+
+;Fait un demi-tour et avance
 HalfTurn
 		BL	MOTEUR_DROIT_ARRIERE
 		BL	MOTEUR_GAUCHE_ARRIERE
@@ -216,10 +217,10 @@ HalfTurn
 		BL WAIT
 		BL WAIT
 		BL	MOTEUR_GAUCHE_AVANT
-
 		B CheckBumpers
 
-		;; Boucle d'attente pour bumper droit
+; Boucle d'attente pour bumper droit
+;Permet d'attendre afin de détecter l'activation du deuxième bumper avant d'éxecuter l'action suivante
 waitBumperRight	
 		ldr r1, =0x2BFFF
 wait2
@@ -228,10 +229,10 @@ wait2
 		BEQ TurnOnLeds
 		subs r1, #1
         bne wait2
-		
 		B TurnOnLed1Program1
 	
-		;; Boucle d'attente pour bumper gauche
+;Boucle d'attente pour bumper gauche
+;Permet d'attendre afin de détecter l'activation du deuxième bumper avant d'éxecuter l'action suivante
 waitBumperleft
 		ldr r1, =0x2BFFF
 wait3
@@ -240,7 +241,6 @@ wait3
 		BEQ TurnOnLeds
 		subs r1, #1
         bne wait3
-		
 		B TurnOnLed2Program1
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Fin programme 1;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -258,7 +258,8 @@ Program2
 		BL	MOTEUR_INIT
 		BL WAIT
 
-Input ; Enregistrement des directions lues par les bumpers
+;Enregistrement des directions lues par les bumpers
+Input
 		ldr r10, [r8]
 		ldr r11, [r7]
 		CMP r10, #0x02 ; Check if right one is pushed
@@ -267,84 +268,84 @@ Input ; Enregistrement des directions lues par les bumpers
 		BEQ AddLeft
 		CMP r11, #0xC0 ; Check if switch 1 is pushed
 		BNE StartCycle
-		
 		B Input
-
-StartCycle
-		BL WAIT
-		
-		; Activer les deux moteurs droit et gauche
-		BL	MOTEUR_DROIT_ON
-		BL	MOTEUR_GAUCHE_ON
-		
-		; Evalbot avance droit devant
-		BL	MOTEUR_DROIT_AVANT	   
-		BL	MOTEUR_GAUCHE_AVANT
-		BL WAIT
-		BL WAIT  
-		
-ExecuteDirections		
-		AND r9, r4, r2
-		CMP r5, #0x0
-		BEQ.W EndProgram
-		SUB r5, #1
-
-		BL Motors		
-		LSL r2, r2, #0x1
-		B ExecuteDirections
-
-PowerLoop
-		MUL r1, r1, r0
-		SUB r12, #1
-		CMP r12, #0
-		BEQ SequenceAddLeft
-		B PowerLoop
-		
+	
+;Ajouter la valeur gauche au registre R5
 AddLeft
 		LDR r1, =0x1 ; Pour la puissance à 0 qui vaut 1 par convention
 		CMP r5, #0
 		BEQ SequenceAddLeft
 		MOV r12, r5
-		
 		B PowerLoop
 		
 SequenceAddLeft
 		ADD r5, #1	
-		;LSL r4, r4, #1
 		ADD r4, r4, r1
 		BL TurnOnLed1Program2
 		BL WAIT
 		LDR r12, =0x0
 		BL TurnOffLedsProgram2
-		
-		B Input
-
-AddRight
-		ADD r5, #1
-		BL TurnOnLed2Program2
-		BL WAIT
-		BL TurnOffLedsProgram2
-		
 		B Input
 		
+;Allume la LED 2 quand le bumper 1 est pressé
 TurnOnLed1Program2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
 		str r3, [r6]
 		BX LR
-		
+
+;Calcul de la puissance 2^n
+PowerLoop
+		MUL r1, r1, r0
+		SUB r12, #1
+		CMP r12, #0
+		BEQ SequenceAddLeft
+		B PowerLoop
+
+;Ajouter la valeur droite au registre R5
+AddRight
+		ADD r5, #1
+		BL TurnOnLed2Program2
+		BL WAIT
+		BL TurnOffLedsProgram2
+		B Input
+
+;Allume la LED 1 quand le bumper 2 est pressé
 TurnOnLed2Program2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r3, = BROCHE4 ; Turns on Led 1
 		str r3, [r6]
 		BX LR
-
+		
+;Eteind les deux LEDs
 TurnOffLedsProgram2
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]
 		BX LR
+
+;Lecture des instructions enregistrées
+StartCycle
+		BL WAIT
+		; Activer les deux moteurs droit et gauche
+		BL	MOTEUR_DROIT_ON
+		BL	MOTEUR_GAUCHE_ON
+		; Evalbot avance droit devant
+		BL	MOTEUR_DROIT_AVANT	   
+		BL	MOTEUR_GAUCHE_AVANT
+		BL WAIT
+		BL WAIT  
+
+;Permet d'éxécuter les actions enregistrées par l'utilisateur
+ExecuteDirections		
+		AND r9, r4, r2
+		CMP r5, #0x0
+		BEQ.W EndProgram
+		SUB r5, #1
+		BL Motors		
+		LSL r2, r2, #0x1
+		B ExecuteDirections
 				
 Motors
 		PUSH {LR}
@@ -352,48 +353,39 @@ Motors
 		BNE TurnLeft
 		B TurnRight
 		
-TurnRight
-		;ADD r2, #1
-		
+TurnRight		
 		BL	MOTEUR_DROIT_ARRIERE   
 		BL WAIT
 		BL	MOTEUR_DROIT_AVANT
 		BL WAIT
-		
 		ldr r9, =0x0
 		POP {LR}
-		
 		BX	LR
 			
 TurnLeft
-		;ADD r2, #2
-		
 		BL	MOTEUR_GAUCHE_ARRIERE
 		BL WAIT
 		BL	MOTEUR_GAUCHE_AVANT
 		BL WAIT
-		
 		ldr r9, =0x0
 		POP {LR}
-		
 		BX	LR
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Fin programme 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-		;; Boucle d'attente
+;Boucle d'attente
 WAIT	
 		ldr r1, =0x2BFFFF
 wait1	
 		subs r1, #1
         bne wait1
-		
 		;; retour à la suite du lien de branchement
 		BX	LR
 
 EndProgram
 		BL	MOTEUR_DROIT_OFF
 		BL	MOTEUR_GAUCHE_OFF
-		
+	
 		nop		
 		END 
