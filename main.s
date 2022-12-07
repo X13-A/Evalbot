@@ -162,8 +162,7 @@ TurnOnLeds
 		B HalfTurn
 
 ;Allume la LED 1
-TurnOnLed1Program1
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)		
+TurnOnLed1Program1		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
 		str r3, [r6]
@@ -171,9 +170,6 @@ TurnOnLed1Program1
 
 ;Allume la LED 2
 TurnOnLed2Program1
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
-		;str r2, [r6] ; Turns off Led 2
-		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r3, = BROCHE4 ; Turns on Led 1
 		str r3, [r6]
@@ -289,7 +285,6 @@ SequenceAddLeft
 		
 ;Allume la LED 2 quand le bumper 1 est pressé
 TurnOnLed1Program2
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r3, = BROCHE5
 		str r3, [r6]
@@ -313,7 +308,6 @@ AddRight
 
 ;Allume la LED 1 quand le bumper 2 est pressé
 TurnOnLed2Program2
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE5<<2)
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4<<2)
 		ldr r3, = BROCHE4 ; Turns on Led 1
 		str r3, [r6]
